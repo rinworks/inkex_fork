@@ -33,31 +33,23 @@ import numpy as np
 
 import inkex
 from inkex import bezier, Transform, BoundingBox, Group, Use
+from inkex.elements._polygons import PathElement
 from inkex.localization import inkex_gettext as _
 
 import pathmodifier
 
 
-class OffsetPath(pathmodifier.Diffeo):
+class OffsetPath(pathmodifier.PathModifier):
     def __init__(self):
         super().__init__()
         self.arg_parser.add_argument(
-            "-n",
-            "--noffset",
+            "-d",
+            "--distance",
             type=float,
-            dest="noffset",
+            dest="distance",
             default=10.0,
             help="normal offset",
         )
-        self.arg_parser.add_argument(
-            "-t",
-            "--toffset",
-            type=float,
-            dest="toffset",
-            default=10.0,
-            help="tangential offset",
-        )
-
         self.arg_parser.add_argument(
             "-c",
             "--copymode",
@@ -94,16 +86,6 @@ class OffsetPath(pathmodifier.Diffeo):
             mat = [[1, 0, x], [0, 1, y]]
         return Transform(mat)
 
-    def center_node_at_origin(self, node):
-        """Translates a node to the origin and applies translation if requested"""
-        bbox = node.bounding_box()
-        mat = Transform([[1, 0, -bbox.center.x], [0, 1, -bbox.center.y]])
-        if self.options.vertical:
-            bbox = BoundingBox(-bbox.y, -bbox.x)
-            mat = Transform([[0, -1, 0], [1, 0, 0]]) @ mat
-        mat.add_translate([0, self.options.noffset])
-        node.transform = mat @ node.transform
-        return bbox
 
     def effect(self):
         if len(self.svg.selection) < 1:
@@ -120,16 +102,62 @@ class OffsetPath(pathmodifier.Diffeo):
 
         # all we are doing is adding a path offset by a constant x and y
         for node in self.svg.selection.filter(inkex.PathElement):
-            path = node.path.to_superpath()
-            newnode = node.duplicate()
-            newnode.path = path
-            mat = [[1, 0, self.options.toffset], [0, 1, self.options.noffset ]]
-            newnode.transform = Transform(mat) @ newnode.transform 
-            '''
+            path = node.path.to_superpath() 
+            
             for sub in path:
-                for ctlpt in sub:
-                    self.applyDiffeo(ctlpt[1], (ctlpt[0], ctlpt[2]))
-            '''
+                linearized, lengths = self.linearize(sub)
+                offset_path = self.create_offset(linearized)
+                
+                # Create new path element
+                new_path = PathElement()
+                new_path.path = offset_path
+                new_path.style = node.style
+                node.getparent().append(new_path)
+
+    def create_offset(self, points):
+        """Create an offset path from linearized points"""
+        if len(points) < 2:
+            return points
+        
+        offset_points = []
+        
+        for i in range(len(points)):
+            if i == 0:
+                # First point - use tangent to next
+                next_pt = points[i + 1]
+                dx = next_pt[0] - points[i][0]
+                dy = next_pt[1] - points[i][1]
+            elif i == len(points) - 1:
+                # Last point - use tangent from previous
+                prev_pt = points[i - 1]
+                dx = points[i][0] - prev_pt[0]
+                dy = points[i][1] - prev_pt[1]
+            else:
+                # Middle points - use average of surrounding tangents
+                prev_pt = points[i - 1]
+                next_pt = points[i + 1]
+                dx = next_pt[0] - prev_pt[0]
+                dy = next_pt[1] - prev_pt[1]
+            
+            # Normalize tangent
+            length = math.sqrt(dx**2 + dy**2)
+            if length > 0:
+                dx /= length
+                dy /= length
+                
+                # Perpendicular vector (rotate 90 degrees)
+                nx = -dy
+                ny = dx
+                
+                # Apply offset
+                offset_x = points[i][0] + nx * self.options.distance
+                offset_y = points[i][1] + ny * self.options.distance
+                offset_points.append([offset_x, offset_y])
+            else:
+                offset_points.append(points[i])
+        
+        return offset_points
+
 
 
     '''
