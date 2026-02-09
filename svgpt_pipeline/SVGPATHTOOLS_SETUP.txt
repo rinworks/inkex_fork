@@ -1,0 +1,76 @@
+"""
+SETUP GUIDE: Adding svgpathtools to the Extension
+
+This file explains how to properly bundle the svgpathtools library with this extension.
+
+== QUICK SETUP ==
+
+From PowerShell in the svgpt_pipeline folder:
+
+# Method 1: Using pip (recommended)
+pip install svgpathtools
+python -c "import svgpathtools; import os; print(os.path.dirname(svgpathtools.__file__))"
+
+# This will show you where svgpathtools is installed. Copy all files from there
+# to the svgpathtools/ subdirectory here.
+
+# Method 2: Clone from GitHub
+git clone https://github.com/mathandy/svgpathtools.git temp_svgpathtools
+Copy-Item temp_svgpathtools/svgpathtools/* svgpathtools/ -Recurse -Force
+Remove-Item temp_svgpathtools -Recurse -Force
+
+== WHAT NEEDS TO BE IN svgpathtools/ ==
+
+Essential files:
+- __init__.py
+- path.py
+- parser.py
+- bezier.py
+- polytools.py
+- misctools.py
+
+These are the minimum files needed for basic path manipulation.
+
+Optional but useful:
+- paths2svg.py (for creating SVG files from paths)
+- svg_to_paths.py (for converting SVG files to Path objects)
+- smoothing.py (for smoothing paths)
+- document.py (for document handling)
+
+== AFTER COPYING FILES ==
+
+1. Edit svgpathtools/__init__.py to import the functions you need
+2. Use the extension - Inkscape will automatically find the bundled library
+
+== USAGE EXAMPLE ==
+
+In your extension code:
+    from svgpathtools import Path, Line, CubicBezier, parse_path
+    
+    # Parse an SVG path d-string
+    path = parse_path("M 10 10 L 20 20 C 20 20, 30 30, 40 40")
+    
+    # Get path length
+    length = path.length()
+    
+    # Iterate through segments
+    for segment in path:
+        print(type(segment).__name__)  # Line, CubicBezier, etc.
+
+== TROUBLESHOOTING ==
+
+If you get "ModuleNotFoundError: No module named 'svgpathtools'":
+- Make sure the svgpathtools/ directory exists
+- Make sure the __init__.py file is present in svgpathtools/
+- Check that svgpathtools.py isn't accidentally in the same directory (should be svgpathtools/ directory)
+
+If you get "ImportError" for specific functions:
+- Make sure the corresponding module file (.py) is in the svgpathtools/ directory
+- Check the __init__.py file has the correct imports
+
+== NOTES ==
+
+- The extension automatically adds the svgpathtools directory to the Python path
+- This means you can use: from svgpathtools import ...
+- The library is isolated to this extension, so it won't conflict with other extensions
+"""
