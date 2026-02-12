@@ -21,15 +21,18 @@ This extension demonstrates how to:
 4. Write results back to SVG
 """
 
-import inkex
+
 import sys
 import os
 
-# Add the bundled svgpathtools to the path
-# This allows us to import from the local svgpathtools directory
-extension_dir = os.path.dirname(os.path.abspath(__file__))
+# Add the parent extensions dir to the path
+# This allows us to import from folders under extensions/ like inkex
+extension_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),'..')                    
 sys.path.insert(0, extension_dir)
+#print('\n'.join(sys.path))  # Debug: Print the current sys.path to verify the svgpathtools directory is included         
+import inkex  
 
+# svgpathtools is included as a subdirectory of this extension.
 # Import from the bundled svgpathtools
 try:
     from svgpathtools import Path, Line, CubicBezier, QuadraticBezier, Arc, parse_path
